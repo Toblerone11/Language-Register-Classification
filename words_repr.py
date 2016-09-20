@@ -1,6 +1,7 @@
 import gensim, logging
 import sys
 import os
+import time
 
 # from similarity_space_eval import SimilarityEvaluator
 
@@ -87,7 +88,7 @@ def init_word2vec(path_to_corpus, out_model_path=MODEL_PATH, forcetrain=False):
         
     # logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     print("creating an empty model")
-    model = gensim.models.Word2Vec(min_count=MIN_COUNT, workers=WORKERS, size=NET_SIZE)  # an empty model, no training
+    model = gensim.models.Word2Vec(min_count=MIN_COUNT, workers=WORKERS, size=NET_SIZE, hs=1, negative=0)  # an empty model, no training
     print("building the dictionary")
     model.build_vocab(get_sentences_iter(path_to_corpus))  # can be a non-repeatable, 1-pass generator
     print("training the neural net")
@@ -116,6 +117,7 @@ def init_glove(path_to_corpus):
 
     # model = gensim.models.Word2Vec(sentences)
     model.save(MODEL_PATH)
+
 
 
 def play_with_model():

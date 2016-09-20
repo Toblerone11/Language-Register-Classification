@@ -1,6 +1,8 @@
 from itertools import chain
 from nltk import ngrams
 import numpy as np
+from gensim.models.word2vec_inner import train_batch_cbow, score_sentence_cbow
+from gensim import matutils
 
 class SentenceTrainer():
     def __init__(self, words_model, seq_len=5):
@@ -9,6 +11,9 @@ class SentenceTrainer():
         """
         self.__words_model = words_model
         self.__seq_len=seq_len
+        self.work = matutils.zeros_aligned(self.__words_model.layer1_size, dtype=np.float32)  # per-thread private work memory
+        self.neu1 = matutils.zeros_aligned(self.__words_model.layer1_size, dtype=np.float32)
+        self.alpha = np.array([0.01])
         
     def to_ngrams(self, sentence):
         """
@@ -42,6 +47,22 @@ class SentenceTrainer():
         result = [np.array(list(chain(*vecs))) for vecs in result]
         # result = [vec for vec in result if len(vec) > 0]
         return result
+
+    def train_cbow(self, sentences):
+        """
+        """
+        train_batch_cbow(self.__words_model, sentences, self.alpha, self.work, self.neu1)
+
+    def score_cbow(self, sentence):
+        """
+        """
+        self.__words_model.hs = 0
+        alpha = []
+        return score_sentence_cbow(self.__words_model, sentence, self.alpha, self.work)
+
+    def total_score(self, sentences, n_sentences):
+        return self.__words_model.score(sentences, n_sentences)
+
 
 def test():
     s = "The name April comes from that Latin word aperire which means \"to open\"."

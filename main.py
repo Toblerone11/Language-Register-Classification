@@ -1,21 +1,31 @@
 import os
-from words_repr import init_word2vec, get_model, get_sentences_iter
+from words_repr import init_word2vec, get_model, get_sentences_iter, line_size
 from sentences_repr import SentenceTrainer
 from sklearn.linear_model import SGDClassifier
 import numpy as np
 from pprint import pprint
 from sklearn.externals import joblib
 from sklearn.metrics import accuracy_score
+from gensim.matutils import Dense2Corpus
 
-BOTH_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\PWKP_108016"
+BOTH_PATH = r"./PWKP_108016/PWKP_108016"
+EN_PATH = r"./PWKP_108016/en_wiki.sentences"
+SIMPLE_PATH = r"./PWKP_108016/simple_wiki.sentences"
 TRAIN_PATH = r"./PWKP_108016/train_set.sentences"
 LABEL_PATH = r"./PWKP_108016/labels.lbl"
-SIMPLE_TEST_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\code\simple_test.sentences"
-EN_TEST_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_test.sentences"
 
-WORDS_MODEL_PATH = ".\simple_en_wiki.model"
-CLF_PATH = ".\sgdClassifier.pkl"
+SIMPLE_TEST_PATH = r"./PWKP_108016/simple_test.sentences"
+EN_TEST_PATH = r"./PWKP_108016/en_test.sentences"
+
+EN_MODEL_PATH = "./en_model.model"
+SIMPLE_MODEL_PATH = "./simple_model.model"
+
+CLF_PATH = "./sgdClassifier.pkl"
 MEM_LIMIT = 25000
+
+SIMPLE_LABEL = 1
+EN_LABEL = 0
+
 
 def evaluate_model(y_bar, y):
     TP, TN, FP, FN = 0, 0, 0, 0
@@ -37,7 +47,7 @@ def evaluate_model(y_bar, y):
                 FN += 1
                 loss += 1
     
-    print("TP: {TP}\tFP: {FP}\tFN: {FN}\t".format(TP=TP, FP=FP, FN=FN))
+    print("TP: {TP}\tFP: {FP}\tFN: {FN}\tTN: {TN}".format(TP=TP, FP=FP, FN=FN, TN=TN))
     
     recall = float(TP) / (TP + FN) # amount we cover compare to all what we should
     precision = float(TP) / (TP + FP) # amount we corrected as True compare to all what is really True.
@@ -58,16 +68,73 @@ def get_next_label(path_to_labels):
             line = labelf.readline()
 
 if __name__ == "__main__":
-    init_word2vec(BOTH_PATH, WORDS_MODEL_PATH, forcetrain=False)
+    forcetrain=True
+    print("training en model")
+    init_word2vec(EN_PATH, EN_MODEL_PATH, forcetrain=forcetrain)
     words_model = get_model()
     sent_trainer = SentenceTrainer(words_model)
-    forcetrain = True
+
+    print("get scores")
+    en_test_iter = get_sentences_iter(EN_TEST_PATH)
+    simple_test_iter = get_sentences_iter(SIMPLE_TEST_PATH)
+    en_scores_on_en_model = sent_trainer.total_score(en_test_iter, 22000)
+    simple_scores_on_en_model = sent_trainer.total_score(simple_test_iter, 23000)
+
+    print("training simple model")
+    init_word2vec(SIMPLE_PATH, SIMPLE_MODEL_PATH, forcetrain=forcetrain)
+    words_model = get_model()
+    sent_trainer = SentenceTrainer(words_model)
+
+    print("get scores")
+    en_test_iter = get_sentences_iter(EN_TEST_PATH)
+    simple_test_iter = get_sentences_iter(SIMPLE_TEST_PATH)
+    en_scores_on_simple_model = sent_trainer.total_score(en_test_iter, 22000)
+    simple_scores_on_simple_model = sent_trainer.total_score(simple_test_iter, 23000)
+
+    print("evaluation")
+    y_bar_simple = [None for _ in range(len(simple_scores_on_simple_model))]
+    y_simple = [SIMPLE_LABEL for _ in range(len(simple_scores_on_simple_model))]
+    for i in range(len(simple_scores_on_simple_model)):
+        simple_liklihood = simple_scores_on_simple_model[i]
+        en_liklihood = simple_scores_on_en_model[i]
+        if simple_liklihood < en_liklihood:
+            label = EN_LABEL
+        else:
+            label = SIMPLE_LABEL
+
+        y_bar_simple[i] = label
+
+    y_bar_en = [None for _ in range(len(en_scores_on_en_model))]
+    y_en = [EN_LABEL for _ in range(len(en_scores_on_en_model))]
+    for i in range(len(en_scores_on_en_model)):
+        simple_liklihood = en_scores_on_simple_model[i]
+        en_liklihood = en_scores_on_en_model[i]
+        if en_liklihood < simple_liklihood:
+            label = SIMPLE_LABEL
+        else:
+            label = EN_LABEL
+
+        y_bar_en[i] = label
+
+    y_bar = y_bar_simple + y_bar_en
+    y = y_simple + y_en
+    score = accuracy_score(y_bar, y)
+    print(score)
+        
+
+
+
+
+
+
+"""
     # building classifier
+    forcetrain = False
     if not os.path.exists(CLF_PATH) or forcetrain:
-        sgd = SGDClassifier(loss='log', penalty='l1', alpha=0.01, fit_intercept=True)
+        sgd = SGDClassifier(loss='modified_huber', penalty='l2', alpha=0.001, fit_intercept=False)
         classes = [0, 1]
-        X_train = []
-        y_train = []
+        X_train = np.array([])
+        y_train = np.array([])
         train_iter = get_sentences_iter(TRAIN_PATH)
         labels_iter = get_next_label(LABEL_PATH)
 
@@ -75,39 +142,23 @@ if __name__ == "__main__":
         print("Training model")    
         for sentence in train_iter:
             ngrams_vectors = sent_trainer.to_vector(sentence)
-            X_train.extend(ngrams_vectors)
+            np.append(X_train, ngrams_vectors)
             label = next(labels_iter)
-            y_train.extend(np.array([label for _ in range(len(ngrams_vectors))]))
+            np.append(y_train, np.array([label for _ in range(len(ngrams_vectors))]))
             if len(X_train) > MEM_LIMIT:
                 X_train = np.array(X_train)
                 sgd.partial_fit(X_train, y_train, classes=classes)
                 X_train = []
                 y_train = []
+
+""""""
+        ### Trying to put the matrix in gensim vector space ###
+        model = Dense2Corpus(X_train)
+        print(dir(model))
+""""""
         
-        # X_simple = np.array(X_simple)
-        # Y_simple = np.ones(len(X_simple))
-        # sgd.partial_fit(X_simple, Y_simple, classes=classes)
-        # X_simple = []
-        
-        # build en samples
-        # print("Training English corpus")
-        # for sentence in en_sent_iter:
-        #     ngrams_vectors = sent_trainer.to_vector(sentence)
-        #     X_train.extend(ngrams_vectors)
-        #     y_train.extend(np.zeros(len(ngrams_vectors)))
-            # if len(X_en) > MEM_LIMIT:
-            #     X_en = np.array(X_en)
-            #     Y_en = np.zeros(len(X_en))
-            #     sgd.partial_fit(X_en, Y_en, classes=classes)
-            #     X_en = []
-        
-        # X_en = np.array(X_en)
-        # Y_en = np.zeros(len(X_en))
-        # sgd.partial_fit(X_en, Y_en, classes=classes)
-        # X_en = []
         joblib.dump(sgd, CLF_PATH)
         
-    
     sgd = joblib.load(CLF_PATH) 
     
     # bulding test data
@@ -156,3 +207,12 @@ if __name__ == "__main__":
     score = accuracy_score(result, Y_test)
     F1_score = evaluate_model(result, Y_test)
     print(score)
+    
+    
+"""
+    
+    
+            
+
+    
+    

@@ -4,7 +4,6 @@ import codecs
 INPATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\PWKP_108016"
 EN_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_wiki.sentences"
 SIMPLE_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\simple_wiki.sentences"
-
 MIX_PATH = r"./train_set.sentences"
 LABEL_PATH = r"./labels.lbl"
 
@@ -85,3 +84,4 @@ if __name__ == "__main__":
     # test()
     split_types()
     randomize_sentences()
+            
