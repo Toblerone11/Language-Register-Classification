@@ -5,7 +5,40 @@ INPATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\PWKP_1
 EN_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_wiki.sentences"
 SIMPLE_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\simple_wiki.sentences"
 
-def restructure_file
+MIX_PATH = r"./train_set.sentences"
+LABEL_PATH = r"./labels.lbl"
+
+
+def lines_size(path_to_corpus):
+    """
+    determines the number of lines in the corpus
+    """
+    with open(path_to_corpus, 'r', encoding='utf-8', errors='ignore') as c:
+        for i, l in enumerate(c):
+            pass
+        
+        return i + 1
+
+def randomize_sentences():
+    simple_size = lines_size(SIMPLE_PATH)
+    en_size = lines_size(EN_PATH)
+
+    simplef = open(SIMPLE_PATH, 'r')
+    enf = open(EN_PATH, 'r')
+    labelf = open(LABEL_PATH, 'w')
+    with open(MIX_PATH, 'w') as mixf:
+        randarr = [1 for _ in range(simple_size)] + [0 for _ in range(en_size)]
+        random.shuffle(randarr)
+        for i in randarr:
+            if i == 0:
+                line = enf.readline()
+            else:
+                line = simplef.readline()
+
+            mixf.write(line)
+            labelf.write(str(i))
+            labelf.write(os.linesep)
+
 
 def split_types():
     all_file = codecs.open(INPATH, 'r', encoding='utf-8', errors='ignore')
@@ -47,18 +80,8 @@ def split_types():
     print("simple sentences: ", simple_count)
     return
 
-def test():
-    all_file = open(INPATH, 'r')
-    print(all_file.readline())
-    print(all_file.readline())
-    print(all_file.readline())
-    line = all_file.readline()
-    if line == '\n':
-        print(True)
-    
-    return
 
 if __name__ == "__main__":
     # test()
     split_types()
-            
+    randomize_sentences()

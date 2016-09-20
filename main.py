@@ -8,9 +8,8 @@ from sklearn.externals import joblib
 from sklearn.metrics import accuracy_score
 
 BOTH_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\PWKP_108016"
-SIMPLE_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\simple_wiki.sentences"
-EN_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_wiki.sentences"
-
+TRAIN_PATH = r"./PWKP_108016/train_set.sentences"
+LABEL_PATH = r"./PWKP_108016/labels.lbl"
 SIMPLE_TEST_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\code\simple_test.sentences"
 EN_TEST_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_test.sentences"
 
@@ -18,16 +17,10 @@ WORDS_MODEL_PATH = ".\simple_en_wiki.model"
 CLF_PATH = ".\sgdClassifier.pkl"
 MEM_LIMIT = 25000
 
-"""
-models paths:
-    {simple before: ".\simple_en_wiki.model"
-     english_before: }
-"""
-
-
 def evaluate_model(y_bar, y):
     TP, TN, FP, FN = 0, 0, 0, 0
     loss = 0
+    sum_test = len(y)
     
     for i in range(len(y)):
         if y_bar[i] == 0:
@@ -53,8 +46,16 @@ def evaluate_model(y_bar, y):
     print("recall: ", recall)
     print("precision: ", precision)
     print("F1: ", F1)
-    print("Loss: ", loss)
-    
+    print("Loss: ", float(loss) / sum_test)
+
+def get_next_label(path_to_labels):
+    with open(path_to_labels, 'r') as labelf:
+        line = labelf.readline()
+        while(line != ""):
+            label = int(line[:-1])
+            yield label
+
+            line = labelf.readline()
 
 if __name__ == "__main__":
     init_word2vec(BOTH_PATH, WORDS_MODEL_PATH, forcetrain=False)
@@ -63,45 +64,47 @@ if __name__ == "__main__":
     forcetrain = True
     # building classifier
     if not os.path.exists(CLF_PATH) or forcetrain:
-        sgd = SGDClassifier(loss='hinge', penalty='l2', alpha=0.0001, fit_intercept=True)
+        sgd = SGDClassifier(loss='log', penalty='l1', alpha=0.01, fit_intercept=True)
         classes = [0, 1]
-        X_en = []
-        X_simple = []
-        en_sent_iter = get_sentences_iter(EN_PATH)
-        simple_sent_iter = get_sentences_iter(SIMPLE_PATH)
-        
-        # building simple samples
-        print("Training Simple corpus")    
-        for sentence in simple_sent_iter:
+        X_train = []
+        y_train = []
+        train_iter = get_sentences_iter(TRAIN_PATH)
+        labels_iter = get_next_label(LABEL_PATH)
+
+        # building train samples
+        print("Training model")    
+        for sentence in train_iter:
             ngrams_vectors = sent_trainer.to_vector(sentence)
-            X_simple.extend(ngrams_vectors)
-            if len(X_simple) > MEM_LIMIT:
-                X_simple = np.array(X_simple)
-                Y_simple = np.ones(len(X_simple))
-                sgd.partial_fit(X_simple, Y_simple, classes=classes)
-                X_simple = []
+            X_train.extend(ngrams_vectors)
+            label = next(labels_iter)
+            y_train.extend(np.array([label for _ in range(len(ngrams_vectors))]))
+            if len(X_train) > MEM_LIMIT:
+                X_train = np.array(X_train)
+                sgd.partial_fit(X_train, y_train, classes=classes)
+                X_train = []
+                y_train = []
         
-        X_simple = np.array(X_simple)
-        Y_simple = np.ones(len(X_simple))
-        sgd.partial_fit(X_simple, Y_simple, classes=classes)
-        X_simple = []
+        # X_simple = np.array(X_simple)
+        # Y_simple = np.ones(len(X_simple))
+        # sgd.partial_fit(X_simple, Y_simple, classes=classes)
+        # X_simple = []
         
         # build en samples
-        print("Training English corpus")
-        for sentence in en_sent_iter:
-            ngrams_vectors = sent_trainer.to_vector(sentence)
-            X_en.extend(ngrams_vectors)
-            if len(X_en) > MEM_LIMIT:
-                X_en = np.array(X_en)
-                Y_en = np.zeros(len(X_en))
-                sgd.partial_fit(X_en, Y_en, classes=classes)
-                X_en = []
+        # print("Training English corpus")
+        # for sentence in en_sent_iter:
+        #     ngrams_vectors = sent_trainer.to_vector(sentence)
+        #     X_train.extend(ngrams_vectors)
+        #     y_train.extend(np.zeros(len(ngrams_vectors)))
+            # if len(X_en) > MEM_LIMIT:
+            #     X_en = np.array(X_en)
+            #     Y_en = np.zeros(len(X_en))
+            #     sgd.partial_fit(X_en, Y_en, classes=classes)
+            #     X_en = []
         
-        X_en = np.array(X_en)
-        Y_en = np.zeros(len(X_en))
-        sgd.partial_fit(X_en, Y_en, classes=classes)
-        X_en = []
-        
+        # X_en = np.array(X_en)
+        # Y_en = np.zeros(len(X_en))
+        # sgd.partial_fit(X_en, Y_en, classes=classes)
+        # X_en = []
         joblib.dump(sgd, CLF_PATH)
         
     
@@ -151,13 +154,5 @@ if __name__ == "__main__":
         print(len(Y_test))
         raise
     score = accuracy_score(result, Y_test)
+    F1_score = evaluate_model(result, Y_test)
     print(score)
-    
-    
-    
-    
-    
-            
-
-    
-    
