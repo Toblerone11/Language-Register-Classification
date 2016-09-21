@@ -3,6 +3,7 @@ import sys
 import os
 import time
 from datatools import get_samples_iterator
+import gensim
 
 # from similarity_space_eval import SimilarityEvaluator
 
@@ -14,9 +15,22 @@ NET_SIZE = 100
 
 # globals
 current_model_path = None
+out_model_path = r".\large_model.model"
 
 
-def init_word2vec(path_to_corpus, out_model_path=MODEL_PATH, forcetrain=False):
+def get_complete_model():
+    return gensim.models.Word2Vec.load(out_model_path)
+    print("creating an empty model")
+    model = gensim.models.Word2Vec(min_count=40, workers=WORKERS, size=200, hs=1, negative=0)  # an empty model, no training
+    print("building the dictionary")
+    model.build_vocab(get_samples_iterator(category='all', register='both'))  # can be a non-repeatable, 1-pass generator
+    print("training the neural net")
+    model.train(get_samples_iterator(category='all', register='both'))  # can be a non-repeatable, 1-pass generator
+    model.save(out_model_path)
+    current_model_path = out_model_path
+    return model
+
+def init_word2vec(path_to_corpus, out_model_path="", forcetrain=False):
     global current_model_path
     
     if os.path.exists(out_model_path) and not forcetrain:
@@ -40,7 +54,7 @@ def get_model():
     """
     returns the katest model that was trained using tis library
     """
-    return gensim.models.Word2Vec.load(current_model_path)
+    
 
 
 def play_with_model():

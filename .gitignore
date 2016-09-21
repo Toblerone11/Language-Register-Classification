@@ -1,0 +1,6 @@
+*.npy
+*.lbl
+*.sentences
+*.model
+__pycache__/
+*.pkl

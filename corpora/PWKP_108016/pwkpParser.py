@@ -5,8 +5,8 @@ import random
 INPATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\PWKP_108016"
 EN_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_wiki.sentences"
 SIMPLE_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\simple_wiki.sentences"
-MIX_PATH = r"./train_set.sentences"
-LABEL_PATH = r"./labels.lbl"
+MIX_PATH = r".\train_set.sentences"
+LABEL_PATH = r".\labels.lbl"
 
 
 def lines_size(path_to_corpus):
@@ -23,10 +23,10 @@ def randomize_sentences():
     simple_size = lines_size(SIMPLE_PATH)
     en_size = lines_size(EN_PATH)
 
-    simplef = open(SIMPLE_PATH, 'r')
-    enf = open(EN_PATH, 'r')
-    labelf = open(LABEL_PATH, 'w')
-    with open(MIX_PATH, 'w') as mixf:
+    simplef = open(SIMPLE_PATH, 'r', encoding='utf-8', errors='ignore')
+    enf = open(EN_PATH, 'r', encoding='utf-8', errors='ignore')
+    labelf = open(LABEL_PATH, 'w', encoding='utf-8', errors='ignore')
+    with open(MIX_PATH, 'w', encoding='utf-8', errors='ignore') as mixf:
         randarr = [1 for _ in range(simple_size)] + [0 for _ in range(en_size)]
         random.shuffle(randarr)
         for i in randarr:
@@ -37,7 +37,7 @@ def randomize_sentences():
 
             mixf.write(line)
             labelf.write(str(i))
-            labelf.write(os.linesep)
+            labelf.write('\n')
 
 
 def split_types():
@@ -83,6 +83,6 @@ def split_types():
 
 if __name__ == "__main__":
     # test()
-    split_types()
+    # split_types()
     randomize_sentences()
             

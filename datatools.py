@@ -3,20 +3,25 @@ corpus tools.
 usful to iterate over the data.
 """
 import random
+import sys
 
 SIMPLE_TOKENIZE = 'simple'
 
 
-parallel_en_path = None
-parallel_simple_path = None
-crime_en_path = None
-crime_simple_path = None
-sports_en_path = None
-sports_simple_path = None
-tech_en_path = None
-tech_simple_path = None
-arts_en_path = None
-arts_simple_path = None
+parallel_en_path = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_wiki.sentences"
+parallel_simple_path = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\simple_wiki.sentences"
+parallel_both_train = r"C:\D\Documents\studies\cs\mean_comp\final project\code\Language-Register-Classification\corpora\PWKP_108016\train_set.sentences"
+parallel_en_test = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\en_test.sentences"
+parallel_simple_test = r"C:\D\Documents\studies\cs\mean_comp\final project\code\code\simple_test.sentences"
+crime_en_path = r"C:\D\Documents\studies\corpora\own_wiki\Crime_en.sentences"
+crime_simple_path = r"C:\D\Documents\studies\corpora\own_wiki\Crime_simple.sentences"
+sports_en_path = r"C:\D\Documents\studies\corpora\own_wiki\Sports_en.sentences"
+sports_simple_path = r"C:\D\Documents\studies\corpora\own_wiki\Sports_simple.sentences"
+tech_en_path = r"C:\D\Documents\studies\corpora\own_wiki\Technology_en.sentences"
+tech_simple_path = r"C:\D\Documents\studies\corpora\own_wiki\Technology_simple.sentences"
+arts_en_path =  r"C:\D\Documents\studies\corpora\own_wiki\Technology_en.sentences"
+arts_simple_path = r"C:\D\Documents\studies\corpora\own_wiki\Technology_simple.sentences"
+
 
 EN_PATHS = [parallel_en_path, crime_en_path, sports_en_path, tech_en_path, arts_en_path]
 SIMPLE_PATHS = [parallel_simple_path, crime_simple_path, sports_simple_path, tech_simple_path, arts_simple_path]
@@ -29,9 +34,33 @@ paths_map = {
                              },
                     'crime' : {
                                 'en'  : crime_en_path,
-                                'simple': crime_simple_path
+                                'simple': crime_simple_path,
                                 'both' : [crime_en_path, crime_simple_path]
-                                }
+                                },
+                    'arts'  :   {
+                                'en'  : arts_en_path,
+                                'simple': arts_simple_path,
+                                'both' : [arts_en_path, arts_simple_path]
+                                },
+                    'tech'  :   {
+                                'en'  : tech_en_path,
+                                'simple': tech_simple_path,
+                                'both' : [tech_en_path, tech_simple_path]
+                                },
+                    'sports'  :   {
+                                'en'  : sports_en_path,
+                                'simple': sports_simple_path,
+                                'both' : [sports_en_path, tech_simple_path]
+                                },
+                    
+                    'parallel' : {
+                                    'en' : parallel_en_path,
+                                    'simple' : parallel_simple_path,
+                                    'both' : parallel_both_train,
+                                    'en_test' : parallel_en_test,
+                                    'simple_test' : parallel_simple_test,
+                                    'both_test' : [parallel_en_test, parallel_simple_test]
+                                    }
 
                      }
 
@@ -70,7 +99,28 @@ print list(m)
 print list(m)
 '"""
 
+def simple_tokenize(sentence):
+    """
+    tokenizer which just splitting the sentence by spaces
+    """
+    return sentence.split(" ")
+    
+def custom_tokenize(sentence, key=lambda x: simple_tokenize(x)):
+    """
+    tokenizer which works by the given key function
+    """
+    return key(sentence)
 
+
+def get_tokenizer(name='simple'):
+    if name is  SIMPLE_TOKENIZE:
+        return simple_tokenize
+
+    
+
+
+    
+    
 def lines_size(path_to_corpus):
     """
     determines the number of lines in the corpus
@@ -82,7 +132,7 @@ def lines_size(path_to_corpus):
         return i + 1
 
 
-def sentence_iterator(path_to_corpus, choose_lines=None, tokenizer=simple_tokenizer, include_tag=False):
+def sentence_iterator(path_to_corpus, choose_lines=None, tokenizer=simple_tokenize, include_tag=False):
     """
     generate sentences from corpus.
     """
@@ -149,11 +199,11 @@ def sentence_multi_iterator(iters):
     rest_iters = iters[1:]
     for sentence in first_iter:
         yield sentence
-        for iter in rest_iters::
+        for iter in rest_iters:
             yield next(iter)
     
 
-def get_samples_iterator(category='all', register='both',  include_tag=False, equal=True, randomize=True, tokenize='simple', show_progress=True)
+def get_samples_iterator(category='all', register='both',  include_tag=False, equal=True, randomize=True, tokenize=simple_tokenize, show_progress=True):
     """
     return iterator of samples by the given properties.
     if register is 'both' or category is 'all' then the order will be randomized anyway.
@@ -171,13 +221,13 @@ def get_samples_iterator(category='all', register='both',  include_tag=False, eq
         for i in range(len(paths)):
             lines_choose_array = [1 for _ in range(min_size)] + [0 for _ in range(sizes[i] - min_size)]
             random.shuffle(lines_choose_array)
-            iters.append(sentence_iterator(paths[i], lines_choose_array, include_tag=include_tag, tokenizer=tokenize)
+            iters.append(sentence_iterator(paths[i], lines_choose_array, include_tag=include_tag, tokenizer=tokenize))
         
-        size = min_size
+        size = min_size * len(sizes)
         result_iter = sentence_multi_iterator(iters)
     
     if show_progress:
-        result_iter = activate_with_progress(result_iter, size, "sentences")
+        result_iter = activate_with_progress(result_iter,size , "sentences")
     
     return result_iter
 
@@ -188,25 +238,3 @@ def get_sentences_iter(path_to_corpus):
     return activate_with_progress(it, corpus_size, "sentences")
 
         
-def simple_tokenize(sentence):
-    """
-    tokenizer which just splitting the sentence by spaces
-    """
-    return sentence.split(" ")
-    
-
-def custom_tokenize(sentence, key=lambda x: simple_tokenize(x)):
-    """
-    tokenizer which works by the given key function
-    """
-    return key(sentence)
-
-
-def get_tokenizer(name='simple'):
-    if name is  SIMPLE_TOKENIZE:
-        return simple_tokenize
-
-    
-
-
-    

@@ -3,15 +3,20 @@ from sklearn.externals import joblib
 import numpy as np
 from sentences_repr import SentenceTool
 from datatools import get_samples_iterator
+from words_repr import get_complete_model
+    
+MEM_LIMIT = 25000
+CLF_PATH = r".\clf_sgd.pkl"
 
+    
 class sgdModel():
     """
     Wraps the scikit-learn SGDClassifier class in order to train with large scale
     dataset, and easily run with different congiurations or datasets.
     """
-    def __init__(self, sent_tool, loss='hinge', learnrate=0.01, penalty='l2', reg_factor=0.0001):
-        self.sgd = SGDClassifier(loss=loss, alpha=reg_factor, penalty=penalty, learning_rate =learnrate)
-        self.__sent_tool = sent_tool
+    def __init__(self, loss='hinge', learnrate=0.5, penalty='l2', reg_factor=0.0001):
+        self.sgd = SGDClassifier(loss=loss, alpha=reg_factor, penalty=penalty)
+        self.__sent_tool = SentenceTool(get_complete_model())
         self.classes = None
     
     def fit(self, X):
@@ -24,19 +29,40 @@ class sgdModel():
         """
         fit the model to the given dataset iterator X and the labels iterator y. 
         """
-        self.classes = classes
-        X_train = np.array([])
-        y_train = np.array([])
-        for sentence in X:
-            ngrams_vectors = self.__sent_tool.to_vector(sentence)
-            np.append(X_train, ngrams_vectors)
+        train = True
+        if train:
+            self.classes = classes
+            ngrams_vectors = self.__sent_tool.to_vector(next(X))
+            while len(ngrams_vectors) == 0:
+                ngrams_vectors = self.__sent_tool.to_vector(next(X))
+            X_train = np.array(ngrams_vectors)
             label = next(y)
-            np.append(y_train, np.array([label for _ in range(len(ngrams_vectors))]))
-            if len(X_train) > MEM_LIMIT:
-                X_train = np.array(X_train)
-                sgd.partial_fit(X_train, y_train, classes=classes)
-                X_train = np.array([])
-                y_train = np.array([])
+            y_train = np.array([label for _ in range(len(X_train))])
+            for sentence in X:
+                ngrams_vectors = np.array(self.__sent_tool.to_vector(sentence))
+                if len(ngrams_vectors) == 0:
+                    continue
+                # print(ngrams_vectors.shape)
+                # print(X_train.shape)
+                X_train = np.concatenate((X_train, ngrams_vectors), axis=0)
+                label = next(y)
+                y_train = np.append(y_train, np.array([label for _ in range(len(ngrams_vectors))]))
+                # print(len(X_train), len(y_train))
+                if len(X_train) > MEM_LIMIT:
+                    X_train = np.array(X_train)
+                    self.sgd.partial_fit(X_train, y_train, classes=classes)
+                    
+                    # reset samples in order to prevent memory errors.
+                    ngrams_vectors = self.__sent_tool.to_vector(next(X))
+                    while len(ngrams_vectors) == 0:
+                        ngrams_vectors = self.__sent_tool.to_vector(next(X))
+                    X_train = np.array(ngrams_vectors)
+                    label = next(y)
+                    y_train = np.array([label for _ in range(len(X_train))])
+            
+            joblib.dump(self.sgd, CLF_PATH)
+        
+        self.sgd = joblib.load(CLF_PATH)
     
     def predict(self, X):
         """
@@ -52,7 +78,7 @@ class sgdModel():
         results = []
         labels = []
         for sentence, label in X:
-            ngrams_vectors = sent_trainer.to_vector(sentence)
+            ngrams_vectors = self.__sent_tool.to_vector(sentence)
             decisions = self.sgd.decision_function(ngrams_vectors)
             if sum(decisions) > 0:
                 result = self.classes[1]
@@ -138,3 +164,4 @@ class sgdModel():
     X_test = np.array(X_test)
     result = np.concatenate((result, sgd.predict(X_test)))
     X_test = []
+"""
