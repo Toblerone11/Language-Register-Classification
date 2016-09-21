@@ -72,15 +72,17 @@ def get_next_label(path_to_labels):
 if __name__ == "__main__":
     
     # train SGD
-    # sgd = sgdModel()
-    # sgd.fit_large_scale(get_samples_iterator(category='parallel', register='both'), get_next_label(LABEL_PATH), classes=CLASSES)
-    # y_bar, y = sgd.predict_large_scale(get_samples_iterator(category='parallel', register='both_test', include_tag=True))
-    # score = accuracy_score(y_bar, y)
-    # print(score)
-    # F1_score = evaluate_model(result, Y_test)
-    # print(score)
+    input("ready to train SGD ?")
+    sgd = sgdModel()
+    sgd.fit_large_scale(get_samples_iterator(category='arts', register='both'), get_next_label(LABEL_PATH), classes=CLASSES)
+    y_bar, y = sgd.predict_large_scale(get_samples_iterator(category='parallel', register='both_test', include_tag=True))
+    score = accuracy_score(y_bar, y)
+    print(score)
+    F1_score = evaluate_model(y_bar, y)
+    print(score)
     
     # train CBOW
+    input("ready to train CBOW ?")
     cbow = cbowModel(MODEL_PATH)
     
     # train on categories separetly   

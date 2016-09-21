@@ -29,6 +29,7 @@ class sgdModel():
         """
         fit the model to the given dataset iterator X and the labels iterator y. 
         """
+        self.classes = classes
         train = True
         if train:
             self.classes = classes
@@ -79,6 +80,8 @@ class sgdModel():
         labels = []
         for sentence, label in X:
             ngrams_vectors = self.__sent_tool.to_vector(sentence)
+            if len(ngrams_vectors) == 0:
+                    continue
             decisions = self.sgd.decision_function(ngrams_vectors)
             if sum(decisions) > 0:
                 result = self.classes[1]
