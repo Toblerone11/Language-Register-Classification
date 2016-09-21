@@ -1,14 +1,10 @@
-import gensim, logging
+
 import sys
 import os
 import time
+from datatools import get_samples_iterator
 
 # from similarity_space_eval import SimilarityEvaluator
-
-CORPUS_PATH = r"C:\D\Documents\studies\cs\mean_comp\final project\corpora\wiki\simple_wiki.sentences"
-MODEL_PATH = 'C:\D\Documents\studies\word2vec\wiki_model'
-GOLD_STANDARD_SIMLEX = r"C:\D\Documents\studies\word2vec\gold_simlex.txt"
-OUT_PATH = r"C:\D\Documents\studies\word2vec"
 
 # neural network properties
 CORPUS_SIZE = 222941
@@ -18,65 +14,6 @@ NET_SIZE = 100
 
 # globals
 current_model_path = None
-
-
-def sentence_iterator(path_to_corpus):
-    with open(path_to_corpus, 'r', encoding='utf-8', errors='strict') as corpus:
-        for sentence in corpus:
-            yield sentence.lower().split()
-
-
-def activate_with_progress(generator, max_size, elements_name):
-    """
-    this function wraps any other function which needs to be inspected with progress bar and prints progress bar
-    to the comand prompt.
-    :param generator: a generator type to iterate over its elements,
-    :param max_size: the amount of data the generator may yield.
-    :param elements_name: str, the name of each element, used for the recording data.
-    """
-    post_count = 0
-    percentage = int(max_size / 100)
-    percent_count = 0
-    print("num of all %s: %d\npercentage: %d\n" % (elements_name, max_size, percentage))
-    sys.stdout.write("\r[%s%s] %d%s" % ('#' * percent_count, ' ' * (100 - percent_count), percent_count, '%'))
-    sys.stdout.flush()
-
-    has_next = True
-    while has_next:
-        try:
-            yield generator.__next__()
-            post_count += 1
-            if post_count == percentage:
-                percent_count += 1
-                post_count = 0
-                sys.stdout.write(
-                        "\r[%s%s] %d%s" % ('#' * percent_count, ' ' * (100 - percent_count), percent_count, '%'))
-                sys.stdout.flush()
-                if percent_count == 62:
-                    print('', end='')
-
-                    # if percent_count == 80:
-                    #     break
-        except StopIteration:
-            has_next = False
-            pass
-    print('\n')
-
-
-def lines_size(path_to_corpus):
-    """
-    determines the number of lines in the corpus
-    """
-    with open(path_to_corpus, 'r', encoding='utf-8', errors='ignore') as c:
-        for i, l in enumerate(c):
-            pass
-        
-        return i + 1
-
-def get_sentences_iter(path_to_corpus):
-    it = sentence_iterator(path_to_corpus)
-    corpus_size = lines_size(path_to_corpus)
-    return activate_with_progress(it, corpus_size, "sentences")
 
 
 def init_word2vec(path_to_corpus, out_model_path=MODEL_PATH, forcetrain=False):
@@ -90,9 +27,9 @@ def init_word2vec(path_to_corpus, out_model_path=MODEL_PATH, forcetrain=False):
     print("creating an empty model")
     model = gensim.models.Word2Vec(min_count=MIN_COUNT, workers=WORKERS, size=NET_SIZE, hs=1, negative=0)  # an empty model, no training
     print("building the dictionary")
-    model.build_vocab(get_sentences_iter(path_to_corpus))  # can be a non-repeatable, 1-pass generator
+    model.build_vocab(get_samples_iterator(path_to_corpus))  # can be a non-repeatable, 1-pass generator
     print("training the neural net")
-    model.train(get_sentences_iter(path_to_corpus))  # can be a non-repeatable, 1-pass generator
+    model.train(get_samples_iterator(path_to_corpus))  # can be a non-repeatable, 1-pass generator
 
     # model = gensim.models.Word2Vec(sentences)
     model.save(out_model_path)
@@ -104,20 +41,6 @@ def get_model():
     returns the katest model that was trained using tis library
     """
     return gensim.models.Word2Vec.load(current_model_path)
-
-
-def init_glove(path_to_corpus):
-    # logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    print("creating an empty model")
-    model = gensim.models.Word2Vec(min_count=50, workers=4, size=200)  # an empty model, no training
-    print("building the dictionary")
-    model.build_vocab(get_sentences_iter(path_to_corpus))  # can be a non-repeatable, 1-pass generator
-    print("training the neural net")
-    model.train(get_sentences_iter(path_to_corpus))  # can be a non-repeatable, 1-pass generator
-
-    # model = gensim.models.Word2Vec(sentences)
-    model.save(MODEL_PATH)
-
 
 
 def play_with_model():
@@ -161,7 +84,7 @@ def evaluate(model):
     evaluator.evaluate()
 
     
-
+# main part only for testing purposes
 if __name__ == "__main__":
     # init_word2vec(CORPUS_PATH)
     # model = gensim.models.Word2Vec.load(MODEL_PATH)

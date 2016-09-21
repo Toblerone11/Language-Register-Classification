@@ -31,7 +31,7 @@ CAT_PAGE = "Category"
 TYPE_SEP = ':'
 
 # defaults
-DEFAULT_CATEGORIES = ["Fashion", "Crime", "Money", "Sports", "Politics", "Economics", "Arts", "Technology"]
+DEFAULT_CATEGORIES = ["Politics", "Money", "Sports", "Economics", "Arts", "Technology", "Fashion", "Crime"]
 DEFAULT_LANG = ['en']
 
 # content patterns

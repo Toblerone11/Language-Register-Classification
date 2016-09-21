@@ -4,7 +4,7 @@ import numpy as np
 from gensim.models.word2vec_inner import train_batch_cbow, score_sentence_cbow
 from gensim import matutils
 
-class SentenceTrainer():
+class SentenceTool():
     def __init__(self, words_model, seq_len=5):
         """
         :param: words_model is a word2vec model for words.
